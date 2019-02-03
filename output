@@ -1,0 +1,39 @@
+Program:
+	Function Defination:
+		Function Name: prior4
+		Parameters: <NONE>
+		IF_ELSE expression:
+			Condition:
+				Operation: Equal(==)
+					Operands:
+						Identifier: tokenPtr
+						Identifier: NOT
+			If condition is true:
+				Function call:
+					Arguments:
+						Identifier: NOT
+				Variable Defination:
+					Identifier: ptr
+				Operation: Assign(=)
+					Operands:
+						Identifier: ptr
+						Function call:
+							Arguments:
+								Identifier: tokenPtr
+								Function call:
+									Arguments:
+										Int constant: 0
+				Function call:
+					Arguments:
+						Identifier: ptr
+						Function call:
+							Arguments:
+								<NONE>
+				RETURN statement: 
+						Identifier: ptr
+			Else:
+				RETURN statement: 
+						Function call:
+						Arguments:
+							<NONE>
+		Return value's type: int
