@@ -110,14 +110,14 @@ void error(char* message) {
   range* ptr = rangeList;
   int lineNum = lineSerial;
   while (ptr) {
-    if (lineSerial >= ptr->begin && lineSerial < ptr->end) {
+    if (lineSerial >= ptr->begin && lineSerial <= ptr->end) {
       printf("Error: In file \"%s\":\n",ptr->fileName);
       printf("\tline(%d): %s\n",lineSerial - ptr->begin + 1,message);
       remove(tempFileNames[0]);
       remove(tempFileNames[1]);
       exit(1);
     }
-    lineNum -= ptr->end - ptr->begin + 1;
+    lineNum -= ptr->end - ptr->begin;
     ptr = ptr->next;
   }
   printf("\nError: line(%d): %s\n",lineNum,message);

@@ -101,6 +101,7 @@ void preProcess(const char* fileName, const char* tempFile) {
         fprintf(output,"%s",ident);
     } else fputc(ptr,output);
   }
+  // Reset the line serial.
   lineSerial = 1;
   fclose(input);
   fclose(output);
