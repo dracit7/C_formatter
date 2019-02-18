@@ -25,6 +25,8 @@ int main(int argc, char const *argv[])
   link root = parse();
   // Traverse the syntatic tree.
   traverse(root,0);
+  freopen(formatOutput,"w",stdout);
+  format(root,0);
   // Clean the environment.
   fclose(filePtr);
   remove(tempFileNames[0]);

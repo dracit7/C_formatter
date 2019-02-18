@@ -1,3 +1,9 @@
+// 
+// preprocess.c
+// 
+// The preprocess part of the program.
+// 
+
 
 #ifndef _INC_GLOBAL
 #include "global.h"
@@ -10,13 +16,17 @@ void preProcess(const char* fileName, const char* tempFile) {
   FILE* output = fopen(tempFile,"w");
   int ptr = 0;
   while((ptr = fgetc(input)) != EOF) {
-    if (ptr == '#') {
+    if (ptr == '\n') {
+      lineSerial++;
+      fputc(ptr,output);
+      continue;
+    } else if (ptr == '#') {
       char* ident = readUntilSpace(input);
       // Identify macro definitions
       if (strCmp("include",ident) == 0) {
+        int nameLen = 0;
         ifClean = 0;
         // Include instructions
-        char tempBuffer[BUFFERSIZE] = {0};
         readUntilChar(input);
         // Get include paths
         ptr = fgetc(input);
@@ -24,24 +34,31 @@ void preProcess(const char* fileName, const char* tempFile) {
           // Case 1: #include <xxx>
           char* path = getenv("C_INCLUDE_PATH");
           if (!path) path = "/usr/include/";
-          char* p = strCpy(tempBuffer, path);
+          char* p = strCpy(filenameBuffer + filenamePtr, path);
           while ((ptr = fgetc(input)) != '>') {
+            if (ptr == '\n') error("Include error: wrong syntax.");
             *p = ptr;
             p++;
+            nameLen++;
           }
           *p = 0;
         } else if (ptr == '\"') {
           // Case 2: #include "xxx"
-          char *p = tempBuffer;
+          char *p = filenameBuffer + filenamePtr;
           while ((ptr = fgetc(input)) != '\"') {
+            if (ptr == '\n') error("Include error: wrong syntax.");
             *p = ptr;
             p++;
+            nameLen++;
           }
+          *p = 0;
         } else error("Include path should be between either <> or \"\".");
         // Copy source file's content to target file.
-        FILE* source = fopen(tempBuffer,"r");
+        FILE* source = fopen(filenameBuffer + filenamePtr,"r");
         if (!source) error("Include error. Cannot find target file.");
-        copyFile(source,output);
+        int length = copyFile(source,output);
+        addRange(filenameBuffer + filenamePtr, lineSerial, lineSerial + length);
+        filenamePtr += nameLen;
       } else if (strCmp("define",ident) == 0) {
       // Store defined identifiers
         readUntilChar(input);
@@ -51,22 +68,13 @@ void preProcess(const char* fileName, const char* tempFile) {
           strIndex[definePtr++] = defineBuffer + defineBufferPtr;
           while ((ptr = fgetc(input)) != '\n' && ptr != '\r' && ptr != ' ')
             defineBuffer[defineBufferPtr++] = ptr;
+          if (ptr == '\n') {
+            lineSerial++;
+            ungetc('\n',input);
+          }
           defineBuffer[defineBufferPtr++] = 0;
         } else error("Syntax error: define must be followed by identifiers.");
       } else error("Cannot identify target macro instruction.");
-    } else if (ptr == '/') {
-    // Identify comments
-      ptr = fgetc(input);
-      if (ptr == '/') {
-        readLine(input);
-        ungetc('\n',input);
-      }
-      else if (ptr == '*') {
-        while (1) {
-          while (fgetc(input) != '*') ;
-          if (fgetc(input) == '/') break;
-        }
-      } else error("Syntax error: invalid comment.");
     } else if (isAlpha(ptr) || ptr == '_') {
     // Replace defined identifiers
       ungetc(ptr, input);
@@ -93,6 +101,7 @@ void preProcess(const char* fileName, const char* tempFile) {
         fprintf(output,"%s",ident);
     } else fputc(ptr,output);
   }
+  lineSerial = 1;
   fclose(input);
   fclose(output);
 }

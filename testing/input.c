@@ -2,7 +2,7 @@
 /* This is the input file for testing. */
 #include "testing/sampleHeader.h"
 
-int a[10] = 8,b = 0x9;
+long a[10] = 8,b = 9L;
 
 void print(char c) {
   char seq[1] = 1;

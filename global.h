@@ -1,3 +1,9 @@
+// 
+// global.h
+// 
+// The header file of the formatter, includes global declarations.
+// 
+
 
 #define _INC_GLOBAL
 
@@ -18,10 +24,10 @@ enum Types {
   
   // Token Types
   IDENT = 257,
-  INT_CONST, FLOAT_CONST, CHAR_CONST, // Const types
+  INT_CONST, FLOAT_CONST, CHAR_CONST, LONG_CONST, SHORT_CONST, DOUBLE_CONST, // Const types
   PLUS, MINUS, MULTI, DIV, MOD, EQUAL, ASSIGN, INCRE, DECRE, // Arithmetic operators
   GREATER, LESS, GEQUAL, LEQUAL, NOT, NEQUAL, AND, OR,  // Comparitive operators
-  INT, FLOAT, CHAR, VOID,  // Variable types
+  INT, FLOAT, CHAR, VOID, LONG, SHORT, DOUBLE, // Variable types
   IF, ELSE, WHILE, RETURN, FOR, BREAK, CONTINUE, // Keywords
   SEMI, COMMA, COLON, LPAREN, RPAREN, LBRACE, RBRACE, LBRACK, RBRACK,// Delimiters
 
@@ -35,7 +41,7 @@ enum Types {
 // Global constants
 #define BUFFERSIZE 2048 // Size of the buffer which stores strings.
 #define TABLESIZE 128   // Size of the symbolTable which stores tokens.
-#define KEYWORD_NUM 11   // Number of keywords in tokenTable.
+#define KEYWORD_NUM 14   // Number of keywords in tokenTable.
 #define NONE -2
 
 // Global variables
@@ -43,13 +49,15 @@ float tokenValue = NONE; // The value of the Token
 int lineSerial = 1;
 char buffer[BUFFERSIZE]; // Store all identifiers' names linearly in a buffer.
 int bufferPtr = 0;       // Point to the next byte of the end of the buffer's used space.
-FILE *filePtr;
+FILE *filePtr;           // Input file pointer
 int tokenPtr = 0;        // This is the pointer for grammatical analysis.
 char preBuffer[BUFFERSIZE]; // Buffer for preprocession.
+char formatOutput[] = "formatted.c";
 
 // Util Functions
 int isDigit(int); // Judge if a character represents a number
 int isAlpha(int); // Judge if a character represents a letter 
+int isConst(int); // Judge if a token represents a constant
 int strCmp(char*, char*); // Enhanced strcmp, able to compare string variables.
 char* strCpy(char*, const char*); // Enhanced strcpy, returns the end of s1
 
@@ -61,11 +69,11 @@ void exception(char*);  // Throw an exception and exit
 int symPtr = 0;  // The present size of symbolTable
 
 typedef struct {
-  char* content;
-  int type;
-} token;
+  char* content; // The name of identifier or keyword token
+  int type;      // The type of token (IDENT or keyword types)
+} token;  // token structures in symbolTable
 
-token tokenTable[TABLESIZE];
+token tokenTable[TABLESIZE]; // Body of the symbolTable
 
 int find(char*);         /* Returns the index of target token in tokenTable
                             If not exist, return -1 instead.*/
@@ -83,6 +91,9 @@ token reservedWords[] = {
   "float", FLOAT,
   "char", CHAR,
   "void", VOID,
+  "long", LONG,
+  "short", SHORT,
+  "double", DOUBLE,
   // ...
   0, 0
 };                       // Keywords in C, they should not be regarded as IDENT.
@@ -99,12 +110,26 @@ int defineIndex[TABLESIZE];    // Store IDENTs' location in tokenTable.
 char* strIndex[TABLESIZE];     // Store VALUEs as strings. 
 char defineBuffer[BUFFERSIZE]; // Place to store VALUES.
 int definePtr = 0;             // record the size of index.
-int defineBufferPtr = 0;             // record the end of used buffer.
+int defineBufferPtr = 0;       // record the end of used buffer.
+char filenameBuffer[BUFFERSIZE]; // record filenames.
+int filenamePtr = 0;
+
+struct _range {
+  char* fileName;
+  int begin;
+  int end;
+  struct _range* next; 
+};  // Record the range of a file in preprocessed sourcefile.
+
+typedef struct _range range;
+range* rangeList = 0;
+
+void addRange(char*, int, int);
 
 char* readUntilSpace(FILE*);  // Read from target file to preBuffer until meeting spaces.
 void readUntilChar(FILE*);    // Skip spaces, tabs and enters between keywords.
-void readLine(FILE*);
-void copyFile(FILE*, FILE*);
+void readLine(FILE*);         // Skip the present line.
+int copyFile(FILE*, FILE*);   // Copy the content of File A to File B, returning lineNum of File A.
 
 void preProcess(const char*,const char*);
 
@@ -113,11 +138,14 @@ void preProcess(const char*,const char*);
  * could know that there're still include instructions. */
 int ifClean = 1;              
 
+/* Preprocess would generate temp files from the input file.
+ * Until there's no include instructions in temp file, preprocess() 
+ * would be called again and again. */
 char* tempFileNames[2] = {"temp1", "temp2"};
                                  
 
 // Lexical analysis
-int getToken();
+int getToken();  // Get a token from input.
 
 // Syntatic Tree
 
@@ -143,13 +171,14 @@ typedef struct _node node;
 typedef struct _node* link;
 typedef struct _child child;
 
-link mkNode(int, attribute);
-attribute mkNumProp(float);
-attribute mkStrProp(char*);
-void addChild(link, link);
-void indent(int);
+link mkNode(int, attribute);    // Make a node with its nodeType and attribute.
+attribute mkNumProp(float);     // Wrap a float number into an attribute.
+attribute mkStrProp(char*);     // Wrap a string into an attribute.
+void addChild(link, link);      // Add node B to node A's childlist.
+void indent(int);               // Formatter, make indent
 
 void traverse(link, int);
+void format(link, int);
 
 // Grammatical analysis
 link parse();

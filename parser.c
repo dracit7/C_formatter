@@ -1,3 +1,8 @@
+// 
+// parser.c
+// 
+// The lexical and grammatical analysis part of the formatter.
+// 
 
 /* Grammar supported (Represented by BNF without left-recursion): 
  * program -> externalDef program | externalDef
@@ -47,6 +52,7 @@
  *         | ( expr )
  * argSeq -> expr , argSeq | expr
  * */
+
 
 #ifndef _INC_GLOBAL
 #include "global.h"
@@ -101,6 +107,9 @@ int getToken() {
         // But not solved yet
         tokenValue = num + dec;
         return FLOAT_CONST;
+      } else if (lookAhead == 'L') {
+        tokenValue = (long)num;
+        return LONG_CONST;
       } else {
         ungetc(lookAhead,filePtr);
         tokenValue = (int)num;
@@ -201,6 +210,23 @@ int getToken() {
       tokenValue = lookAhead;
       if ((lookAhead = fgetc(filePtr)) == '\'') return CHAR_CONST;
       else error("illegal constChar declaration.");
+    } else if (lookAhead == '/') {
+    // Case 6: Identify comments
+    // I identify comments here instead of in preprocess period,
+    // because it would be more convenient to report errors.
+      lookAhead = fgetc(filePtr);
+      if (lookAhead == '/') {
+        readLine(filePtr);
+        ungetc('\n',filePtr);
+      }
+      else if (lookAhead == '*') {
+        char c = 0;
+        while (1) {
+          while ((c = fgetc(filePtr)) != '*') 
+            if (c == '\n') lineSerial++;
+          if (fgetc(filePtr) == '/') break;
+        }
+      } else error("Syntax error: invalid comment.");
     } else {
     // Other cases
       char buf[128];
@@ -264,7 +290,7 @@ link parse() {
  * */
 
 link externalDef() {
-  if (tokenPtr == INT || tokenPtr == FLOAT || tokenPtr == CHAR || tokenPtr == VOID) {
+  if (isVar(tokenPtr) || tokenPtr == VOID) {
     int Type = tokenPtr;
     match(tokenPtr);
     char* name = tokenTable[(int)tokenValue].content;
@@ -276,7 +302,7 @@ link externalDef() {
       link returnType = mkNode(RETURNTYPE,mkNumProp(Type));
       match(LPAREN);
       while (tokenPtr != RPAREN) {
-        if (tokenPtr == INT || tokenPtr == FLOAT || tokenPtr == CHAR) {
+        if (isVar(tokenPtr)) {
           link param = mkNode(PARAM, mkNumProp(tokenPtr));
           match(tokenPtr);
           addChild(param, mkNode(VAR, mkStrProp(tokenTable[(int)tokenValue].content)));
@@ -310,7 +336,7 @@ link externalDef() {
       if (tokenPtr == ASSIGN) {
         match(ASSIGN);
         link value = mkNode(Type,mkNumProp(tokenValue));
-        if (tokenPtr == INT_CONST || tokenPtr == FLOAT_CONST || tokenPtr == CHAR_CONST)
+        if (isConst(tokenPtr))
           match(tokenPtr);
         else error("Syntax error: initial value for global variables must be constant.");
         addChild(ident, value);
@@ -333,7 +359,7 @@ link externalDef() {
         if (tokenPtr == ASSIGN) {
           match(ASSIGN);
           link value = mkNode(tokenPtr,mkNumProp(tokenValue));
-          if (tokenPtr == INT_CONST || tokenPtr == FLOAT_CONST || tokenPtr == CHAR_CONST)
+          if (isConst(tokenPtr))
             match(tokenPtr);
           else error("Syntax error: initial value for global variables must be constant.");
           addChild(ident, value);
@@ -356,7 +382,7 @@ link compState() {
 }
 
 link statement() {
-  if (tokenPtr == INT || tokenPtr == FLOAT || tokenPtr == CHAR) {
+  if (isVar(tokenPtr)) {
   // localVarDef
     link ptr = mkNode(VARDEF,mkNumProp(0));
     int Type = tokenPtr;
@@ -376,7 +402,7 @@ link statement() {
     if (tokenPtr == ASSIGN) {
       match(ASSIGN);
       link value = mkNode(Type,mkNumProp(tokenValue));
-      if (tokenPtr == INT_CONST || tokenPtr == FLOAT_CONST || tokenPtr == CHAR_CONST)
+      if (isConst(tokenPtr))
         match(tokenPtr);
       else error("Syntax error: initial value for local variables must be constant.");
       addChild((ptr->head->next->location), value);
@@ -399,7 +425,7 @@ link statement() {
       if (tokenPtr == ASSIGN) {
         match(ASSIGN);
         link value = mkNode(tokenPtr,mkNumProp(tokenValue));
-        if (tokenPtr == INT_CONST || tokenPtr == FLOAT_CONST || tokenPtr == CHAR_CONST)
+        if (isConst(tokenPtr))
           match(tokenPtr);
         else error("Syntax error: initial value for local variables must be constant.");
         addChild(ident, value);
@@ -595,6 +621,7 @@ link factor() {
   link ptr;
   switch(tokenPtr) {
     case INT_CONST: case FLOAT_CONST: case CHAR_CONST:
+    case LONG_CONST: case SHORT_CONST: case DOUBLE_CONST:
       ptr = mkNode(tokenPtr,mkNumProp(tokenValue));
       match(tokenPtr);
       return ptr;
