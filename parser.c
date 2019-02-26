@@ -22,6 +22,7 @@
  *       | IF ( expr ) compStateOrStat
  *       | IF ( expr ) compStateOrStat ELSE compStateOrStat
  *       | WHILE ( expr ) compStateOrStat
+ *       | ...
  * compStateOrStat -> compState | stat
  * expr -> prior0 morePrior0    // These steps removes left-recursion
  * prior0 -> prior1 morePrior1
@@ -70,19 +71,47 @@ int getToken() {
       continue;
     } else if (isDigit(lookAhead)) {
     // Case 2: int or float constants
-      int isHex = 0;
       if (lookAhead == '0') {
         if ((lookAhead = fgetc(filePtr)) != 'x') {
-          if (isDigit(lookAhead)) error("Number can't start with 0.");
-          else {
+          if (isDigit(lookAhead)) {
+            int num = 0;
+            while (lookAhead >= '0' && lookAhead <= '7') {
+              num = num*8 + lookAhead - '0';
+              lookAhead = fgetc(filePtr);
+            }
+            if (isDigit(lookAhead) || isAlpha(lookAhead)) error("Invalid Octal number.");
+            ungetc(lookAhead,filePtr);
+            tokenValue = (int)num;
+            return INT_CONST;
+          }
+          else if (lookAhead == '.') {
+            float dec = 0;
+            lookAhead = fgetc(filePtr);
+            while (isDigit(lookAhead)) {
+              dec = dec*10 + lookAhead - '0';
+              lookAhead = fgetc(filePtr);
+            }
+            while (dec > 1.0) dec /= 10.0;
+            ungetc(lookAhead, filePtr);
+            tokenValue = dec;
+            return FLOAT_CONST;
+          } else {
             ungetc(lookAhead,filePtr);
             tokenValue = 0;
             return INT_CONST;
           }
         }
         else {
-          isHex = 1;
+          int num = 0;
           lookAhead = fgetc(filePtr);
+          while (isDigit(lookAhead) || (lookAhead>='a'&&lookAhead<='f') || (lookAhead>='A'&&lookAhead<='F')) {
+            num = num*16 + lookAhead - '0';
+            lookAhead = fgetc(filePtr);
+          }
+          if (isAlpha(lookAhead)) error("Invalid hex number.");
+          ungetc(lookAhead,filePtr);
+          tokenValue = (int)num;
+          return INT_CONST;
         }
       }
       float num = 0;
@@ -93,7 +122,6 @@ int getToken() {
       } 
       // Judge if this is an integer or float
       if (lookAhead == '.') {
-        if (isHex) error("Invalid constant.");
         float dec = 0;
         lookAhead = fgetc(filePtr);
         // Get the decimal part of the number
@@ -153,30 +181,7 @@ int getToken() {
       }
     } else if (lookAhead == '-') {
       if ((lookAhead = fgetc(filePtr)) == '-') return DECRE;
-      else if (isDigit(lookAhead)) {
-      // Negative Numbers
-        float num = 0;
-        while (isDigit(lookAhead)) {
-          num = num*10 + lookAhead - '0';
-          lookAhead = fgetc(filePtr);
-        } 
-        if (lookAhead == '.') {
-          float dec = 0;
-          lookAhead = fgetc(filePtr);
-          while (isDigit(lookAhead)) {
-            dec = dec*10 + lookAhead - '0';
-            lookAhead = fgetc(filePtr);
-          }
-          while (dec > 1.0) dec /= 10.0;
-          ungetc(lookAhead, filePtr);
-          tokenValue = -(num + dec);
-          return FLOAT_CONST;
-        } else {
-          ungetc(lookAhead,filePtr);
-          tokenValue = -((int)num);
-          return INT_CONST;
-        }
-      } else {
+      else {
         ungetc(lookAhead,filePtr);
         return MINUS;
       }
@@ -216,16 +221,22 @@ int getToken() {
     // because it would be more convenient to report errors.
       lookAhead = fgetc(filePtr);
       if (lookAhead == '/') {
+        emitLineNum();
         readLine(filePtr);
+        putchar('\n');
         ungetc('\n',filePtr);
       }
       else if (lookAhead == '*') {
+        emitLineNum();
         char c = 0;
         while (1) {
-          while ((c = fgetc(filePtr)) != '*') 
+          while ((c = fgetc(filePtr)) != '*') {
             if (c == '\n') lineSerial++;
+            putchar(c);
+          }
           if (fgetc(filePtr) == '/') break;
         }
+        putchar('\n');
       } else error("Syntax error: invalid comment.");
     } else {
     // Other cases
@@ -513,6 +524,7 @@ link expr() {
       match(tokenPtr);
       link oper2 = priorN2();
       link ptr = mkNode(ASSIGN,mkNumProp(0));
+      if (!(oper1 && oper2)) error("Lack of operators");
       addChild(ptr,oper1);
       addChild(ptr,oper2);
       oper1 = ptr;
@@ -527,6 +539,7 @@ link priorN2() {
       match(tokenPtr);
       link oper2 = priorN1();
       link ptr = mkNode(OR,mkNumProp(0));
+      if (!(oper1 && oper2)) error("Lack of operators");
       addChild(ptr,oper1);
       addChild(ptr,oper2);
       oper1 = ptr;
@@ -541,6 +554,7 @@ link priorN1() {
       match(tokenPtr);
       link oper2 = prior0();
       link ptr = mkNode(AND,mkNumProp(0));
+      if (!(oper1 && oper2)) error("Lack of operators");
       addChild(ptr,oper1);
       addChild(ptr,oper2);
       oper1 = ptr;
@@ -556,6 +570,7 @@ link prior0() {
       match(tokenPtr);
       link oper2 = prior1();
       link ptr = mkNode(Type,mkNumProp(0));
+      if (!(oper1 && oper2)) error("Lack of operators");
       addChild(ptr,oper1);
       addChild(ptr,oper2);
       oper1 = ptr;
@@ -571,6 +586,7 @@ link prior1() {
       match(tokenPtr);
       link oper2 = prior2();
       link ptr = mkNode(Type,mkNumProp(0));
+      if (!(oper1 && oper2)) error("Lack of operators");
       addChild(ptr,oper1);
       addChild(ptr,oper2);
       oper1 = ptr;
@@ -586,6 +602,7 @@ link prior2() {
       match(tokenPtr);
       link oper2 = prior3();
       link ptr = mkNode(Type,mkNumProp(0));
+      if (!(oper1 && oper2)) error("Lack of operators");
       addChild(ptr,oper1);
       addChild(ptr,oper2);
       oper1 = ptr;
@@ -601,6 +618,7 @@ link prior3() {
       match(tokenPtr);
       link oper2 = prior4();
       link ptr = mkNode(Type,mkNumProp(0));
+      if (!(oper1 && oper2)) error("Lack of operators");
       addChild(ptr,oper1);
       addChild(ptr,oper2);
       oper1 = ptr;

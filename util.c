@@ -71,7 +71,9 @@ void readUntilChar(FILE* input) {
 // Read a line from a file ptr.
 void readLine(FILE* input) {
   char c;
-  while ((c = fgetc(input)) != '\n') ;
+  while ((c = fgetc(input)) != '\n') {
+    putchar(c);
+  }
 }
 
 // Copy the content of file a to file b
@@ -117,6 +119,7 @@ void error(char* message) {
       remove(tempFileNames[1]);
       exit(1);
     }
+    if (lineNum < ptr->end - ptr->begin) break;
     lineNum -= ptr->end - ptr->begin;
     ptr = ptr->next;
   }
@@ -131,6 +134,23 @@ void exception(char* message) {
   remove(tempFileNames[0]);
   remove(tempFileNames[1]);
   exit(1);
+}
+
+void emitLineNum() {
+  range* ptr = rangeList;
+  int lineNum = lineSerial;
+  int flag = 0;
+  while (ptr) {
+    if (lineSerial >= ptr->begin && lineSerial <= ptr->end) {
+      printf("In file \"%s\":\n",ptr->fileName);
+      printf("\tLine(%d): ",lineSerial - ptr->begin + 1);
+      flag = 1;
+    }
+    if (lineNum < ptr->end - ptr->begin) break;
+    lineNum -= ptr->end - ptr->begin;
+    ptr = ptr->next;
+  }
+  if (!flag) printf("Line(%d): ",lineNum);
 }
 
 /* Functions for the tokenTable */
@@ -252,6 +272,7 @@ void indent(int layer) {
 // Traverse the syntatic tree and print the structure of the program to stdout.
 void traverse(link root, int layer) {
   child* ptr;
+  if (!root) exception("Lack of operators");
   switch(root->type) {
     case PROGREM:
       indent(layer);
@@ -779,7 +800,7 @@ void format(link root, int layer) {
         if (root->head->next->location == 0 || root->head->next->location->head == 0) {
           printf(";\n");
         } else format(root->head->next->location, layer);
-        printf("else ");
+        printf(" else ");
         if (root->head->next->next->location == 0 || root->head->next->next->location->head == 0) {
           printf(";");
         } else format(root->head->next->next->location, layer);

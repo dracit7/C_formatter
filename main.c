@@ -18,12 +18,14 @@ int main(int argc, char const *argv[])
     i = !i;
   }
   // Parse period.
+  printf("\nComments:\n\n");
   symPtr = 0; // Clear the tokenTable
   init();
   filePtr = fopen(tempFileNames[i],"r");
   if (!filePtr) exception("Cannot open target file.");
   link root = parse();
   // Traverse the syntatic tree.
+  putchar('\n');
   traverse(root,0);
   freopen(formatOutput,"w",stdout);
   format(root,0);

@@ -33,7 +33,7 @@ void preProcess(const char* fileName, const char* tempFile) {
         if (ptr == '<') {
           // Case 1: #include <xxx>
           char* path = getenv("C_INCLUDE_PATH");
-          if (!path) path = "/usr/include/";
+          if (!path) error("Include error. Can not find target header, please update your environment variables.");
           char* p = strCpy(filenameBuffer + filenamePtr, path);
           while ((ptr = fgetc(input)) != '>') {
             if (ptr == '\n') error("Include error: wrong syntax.");

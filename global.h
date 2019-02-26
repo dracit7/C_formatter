@@ -64,6 +64,7 @@ char* strCpy(char*, const char*); // Enhanced strcpy, returns the end of s1
 // Error Handling
 void error(char*);      // Report an error and the line serial at present, then exit
 void exception(char*);  // Throw an exception and exit
+void emitLineNum();
 
 // SymbolTable
 int symPtr = 0;  // The present size of symbolTable
