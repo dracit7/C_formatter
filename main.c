@@ -1,8 +1,8 @@
 
 #include "global.h"
-#include "util.c"
 #include "preprocess.c"
 #include "parser.c"
+#include "util.c"
 
 int main(int argc, char const *argv[])
 {
@@ -20,6 +20,7 @@ int main(int argc, char const *argv[])
   // Parse period.
   printf("\nComments:\n\n");
   symPtr = 0; // Clear the tokenTable
+  // Init the token Table
   init();
   filePtr = fopen(tempFileNames[i],"r");
   if (!filePtr) exception("Cannot open target file.");

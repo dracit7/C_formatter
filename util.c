@@ -182,46 +182,6 @@ void init() {
     insert(ptr->content, ptr->type);
 }
 
-/* Emitter */
-
-void emit(int token, float tokenVal) {
-  switch (token) {
-    case IDENT: printf("%s",tokenTable[(int)tokenVal].content);break;
-    case INT_CONST: printf("%d",(int)tokenVal);break;
-    case FLOAT_CONST: printf("%f",tokenVal);break;
-    case CHAR_CONST: printf("\'%c\'",(int)tokenVal);break;
-    case PLUS: printf(" + "); break;
-    case MINUS: printf(" - "); break;
-    case MULTI: printf(" * "); break;
-    case DIV: printf(" / "); break;
-    case MOD: printf(" %% "); break;
-    case EQUAL: printf(" == "); break;
-    case ASSIGN: printf(" = "); break;
-    case GREATER: printf(" > "); break; 
-    case LESS: printf(" < "); break; 
-    case GEQUAL: printf(" >= "); break; 
-    case LEQUAL: printf(" <= "); break; 
-    case NOT: printf(" !"); break; 
-    case NEQUAL: printf(" != "); break; 
-    case INT: printf("int "); break; 
-    case FLOAT: printf("float "); break; 
-    case CHAR: printf("char "); break; 
-    case VOID: printf("void "); break;
-    case IF: printf("if "); break; 
-    case ELSE: printf(" else "); break; 
-    case WHILE: printf("while "); break; 
-    case RETURN: printf("return "); break; 
-    case SEMI: printf(";\n"); break; 
-    case COMMA: printf(", "); break; 
-    case COLON: printf(": "); break; 
-    case LPAREN: printf("("); break; 
-    case RPAREN: printf(")"); break; 
-    case LBRACE: printf(" {\n"); break; 
-    case RBRACE: printf("}\n"); break; 
-    default: printf("token: %d\n",token);
-  }
-}
-
 /* Functions for the syntatic tree */
 
 // Make a new node of the syntatic tree.
@@ -427,22 +387,40 @@ void traverse(link root, int layer) {
         printf("IF expression:\n");
         indent(layer+1); 
         printf("Condition:\n");
-        traverse(root->head->location, layer+2);
+        if (root->head->location)
+          traverse(root->head->location, layer+2);
+        else error("IF expression without condition.");
         indent(layer+1); 
         printf("If condition is true:\n");
-        traverse(root->head->next->location, layer+2);
+        if (root->head->next->location)
+          traverse(root->head->next->location, layer+2);
+        else {
+          indent(layer+2);
+          printf("<NONE>\n");
+        }
       } else if (strCmp(root->property.name,"IF_ELSE") == 0) {
         indent(layer); 
         printf("IF_ELSE expression:\n");
         indent(layer+1); 
         printf("Condition:\n");
-        traverse(root->head->location, layer+2);
+        if (root->head->location)
+          traverse(root->head->location, layer+2);
+        else error("IF expression without condition.");
         indent(layer+1); 
-        printf("If condition is true:\n");
-        traverse(root->head->next->location, layer+2);
+        if (root->head->next->location)
+          traverse(root->head->next->location, layer+2);
+        else {
+          indent(layer+2);
+          printf("<NONE>\n");
+        }
         indent(layer+1); 
         printf("Else:\n");
-        traverse(root->head->next->next->location, layer+2);
+        if (root->head->next->next->location)
+          traverse(root->head->next->next->location, layer+2);
+        else {
+          indent(layer+2);
+          printf("<NONE>\n");
+        }
       } else exception("Exists IF expr in other forms.");
       return;
     case WHILE:

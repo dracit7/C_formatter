@@ -1,15 +1,5 @@
 
 Comments:
 
-Line(2):  This is the input file for testing. 
-In file "testing/sampleHeader.h":
-	Line(1):  Global constants
-In file "testing/sampleHeader.h":
-	Line(2):  Number of keywords in tokenTable.
-In file "testing/sampleHeader.h":
-	Line(5):  Global variables
-In file "testing/sampleHeader.h":
-	Line(6):  The value of the Token
-Line(5):  global declarations
 
-Error: line(8): Syntax error: token doesn't match the grammar.
+Error: line(2): Syntax error: invalid comment.

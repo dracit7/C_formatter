@@ -57,6 +57,7 @@ char formatOutput[] = "formatted.c";
 // Util Functions
 int isDigit(int); // Judge if a character represents a number
 int isAlpha(int); // Judge if a character represents a letter 
+int isVar(int);
 int isConst(int); // Judge if a token represents a constant
 int strCmp(char*, char*); // Enhanced strcmp, able to compare string variables.
 char* strCpy(char*, const char*); // Enhanced strcpy, returns the end of s1
